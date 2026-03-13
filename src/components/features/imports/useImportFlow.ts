@@ -9,12 +9,19 @@ import type {
 } from './types';
 import type { TransactionListItem } from '@/components/features/transactions/types';
 import { ParserService } from '@/services/parser.service';
+import { ClassificationService } from '@/services/classification.service';
 import { useAppStore } from '@/lib/store';
+import { BankTransaction } from '@/domain/types';
 
 const parser = new ParserService();
+const classifier = new ClassificationService();
 
 export function useImportFlow() {
   const addTransactions = useAppStore((s) => s.addTransactions);
+  const rules = useAppStore((s) => s.rules);
+  const updateTransactions = useAppStore((s) => s.updateTransactions);
+  const categories = useAppStore((s) => s.categories);
+
   const [step, setStep] = useState<ImportStep>('upload');
   const [bankCode, setBankCode] = useState<BankCode>('BIDV');
   const [file, setFile] = useState<File | null>(null);
@@ -119,31 +126,170 @@ export function useImportFlow() {
 
         setParseResult(result);
         setStep('parsing');
+
+        // Auto-classify inline using locally built result
+        let classifiedCount = 0;
+        let highConfidenceCount = 0;
+        let lowConfidenceCount = 0;
+        const categoryCounts: Record<string, number> = {};
+
+        const currentRules = rules.map(r => ({
+          ...r,
+          amount_min: r.amount_min ?? undefined,
+          amount_max: r.amount_max ?? undefined,
+        }));
+
+        updateTransactions(uploadResult.bank_code as any, (t) => {
+          if (t.batch_id !== result.batch_id) return t;
+          if (t.type === 'debit') return t; // Chỉ phân loại ghi có
+
+          const matchResult = classifier.evaluateRules(t as any as BankTransaction, currentRules as any);
+
+          if (matchResult.suggested_category_id) {
+            classifiedCount++;
+            if (matchResult.confidence_score >= 0.8) highConfidenceCount++;
+            else lowConfidenceCount++;
+
+            const catName = categories.find(c => c.id === matchResult.suggested_category_id)?.name || 'Unknown';
+            categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+
+            return {
+              ...t,
+              status: 'classified' as const,
+              match: {
+                suggested_category_id: matchResult.suggested_category_id,
+                suggested_category_code: matchResult.suggested_category_code || null,
+                suggested_category_name: categories.find(c => c.id === matchResult.suggested_category_id)?.name || null,
+                confidence_score: matchResult.confidence_score,
+                is_manually_overridden: false,
+                confirmed_category_id: null,
+                confirmed_category_code: null,
+                confirmed_category_name: null,
+              }
+            };
+          }
+
+          return t;
+        });
+
+        const topCategories = Object.entries(categoryCounts)
+          .sort(([, a], [, b]) => b - a)
+          .slice(0, 5)
+          .map(([name, count]) => {
+            const cat = categories.find((c) => c.name === name);
+            return {
+              category_id: cat?.id || '',
+              category_code: cat?.code || '',
+              category_name: name,
+              count,
+            };
+          });
+
+        const classifyRes: ClassifyResult = {
+          batch_id: result.batch_id,
+          total_transactions: result.total_parsed,
+          classification_summary: {
+            classified: classifiedCount,
+            unclassified: result.total_parsed - classifiedCount,
+            high_confidence: highConfidenceCount,
+            low_confidence: lowConfidenceCount,
+            already_confirmed: 0,
+          },
+          top_categories: topCategories,
+        };
+
+        setClassifyResult(classifyRes);
+        setStep('classifying');
       } catch (err: any) {
         setError(err.message);
       } finally {
         setLoading(false);
       }
     },
-    [uploadResult]
+    [uploadResult, addTransactions, rules, updateTransactions, categories]
   );
 
   const classify = useCallback(async () => {
-    if (!parseResult) return;
+    if (!parseResult || !uploadResult) return;
     setLoading(true);
     setError(null);
     try {
+      let classifiedCount = 0;
+      let highConfidenceCount = 0;
+      let lowConfidenceCount = 0;
+      const categoryCounts: Record<string, number> = {};
+
+      const currentRules = rules.map(r => ({
+        ...r,
+        id: r.id,
+        category_id: r.category_id,
+        keyword: r.keyword,
+        type: r.type,
+        priority: r.priority,
+        amount_min: r.amount_min ?? undefined,
+        amount_max: r.amount_max ?? undefined,
+        stop_on_match: r.stop_on_match,
+        is_active: r.is_active,
+        created_at: r.created_at,
+        updated_at: r.updated_at
+      }));
+
+      updateTransactions(uploadResult.bank_code as any, (t) => {
+        if (t.batch_id !== parseResult.batch_id) return t;
+
+        const matchResult = classifier.evaluateRules(t as any as BankTransaction, currentRules as any);
+        
+        if (matchResult.suggested_category_id) {
+          classifiedCount++;
+          if (matchResult.confidence_score >= 0.8) highConfidenceCount++;
+          else lowConfidenceCount++;
+
+          const catName = categories.find(c => c.id === matchResult.suggested_category_id)?.name || 'Unknown';
+          categoryCounts[catName] = (categoryCounts[catName] || 0) + 1;
+
+          return {
+            ...t,
+            status: 'classified' as const,
+            match: {
+              suggested_category_id: matchResult.suggested_category_id,
+              suggested_category_code: matchResult.suggested_category_code || null,
+              suggested_category_name: categories.find(c => c.id === matchResult.suggested_category_id)?.name || null,
+              confidence_score: matchResult.confidence_score,
+              is_manually_overridden: false,
+              confirmed_category_id: null,
+              confirmed_category_code: null,
+              confirmed_category_name: null,
+            }
+          };
+        }
+
+        return t;
+      });
+
+      const topCategories = Object.entries(categoryCounts)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([name, count]) => {
+          const cat = categories.find((c) => c.name === name);
+          return {
+            category_id: cat?.id || '',
+            category_code: cat?.code || '',
+            category_name: name,
+            count,
+          };
+        });
+
       const result: ClassifyResult = {
         batch_id: parseResult.batch_id,
         total_transactions: parseResult.total_parsed,
         classification_summary: {
-          classified: 0,
-          unclassified: parseResult.total_parsed,
-          high_confidence: 0,
-          low_confidence: 0,
+          classified: classifiedCount,
+          unclassified: parseResult.total_parsed - classifiedCount,
+          high_confidence: highConfidenceCount,
+          low_confidence: lowConfidenceCount,
           already_confirmed: 0,
         },
-        top_categories: [],
+        top_categories: topCategories,
       };
 
       setClassifyResult(result);
@@ -153,7 +299,7 @@ export function useImportFlow() {
     } finally {
       setLoading(false);
     }
-  }, [parseResult]);
+  }, [parseResult, uploadResult, rules, updateTransactions, categories]);
 
   const finish = useCallback(() => {
     setStep('done');

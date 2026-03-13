@@ -5,7 +5,6 @@ export type UserRole = 'admin' | 'accountant' | 'chief_accountant' | 'viewer';
 export type BatchStatus = 'processing' | 'reviewing' | 'completed' | 'failed';
 export type TransactionType = 'credit' | 'debit';
 export type TransactionStatus = 'pending_classification' | 'classified' | 'confirmed' | 'exported';
-export type ReviewStatus = 'pending' | 'approved' | 'rejected';
 export type RuleType = 'exact' | 'keyword' | 'regex' | 'amount' | 'composite' | 'fallback';
 export type ExportType = 'reconciliation' | 'accounting' | 'summary';
 export type AuditAction = 'insert' | 'update' | 'delete' | 'manual_override';
@@ -84,8 +83,6 @@ export interface TransactionMatch {
   confidence_score: number;
   is_manually_overridden: boolean;
   confirmed_category_id?: string; // UUID
-  review_status: ReviewStatus;
-  reviewer_id?: string; // UUID
   reviewed_at?: string;
   created_at: string;
   updated_at: string;

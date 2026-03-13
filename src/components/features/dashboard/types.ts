@@ -1,4 +1,4 @@
-import type { TransactionStatus, ReviewStatus } from '@/domain/types';
+import type { TransactionStatus } from '@/domain/types';
 
 export interface DashboardStats {
   total_transactions: number;
@@ -27,5 +27,4 @@ export interface UrgentTransaction {
   status: TransactionStatus;
   confidence_score: number;
   suggested_category_name: string | null;
-  review_status: ReviewStatus;
 }

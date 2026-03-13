@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, X, Edit, Loader2, AlertCircle } from "lucide-react";
+import { Check, Edit, Loader2, AlertCircle } from "lucide-react";
 import clsx from "clsx";
 
 export function ReviewDataGrid() {
@@ -37,7 +37,7 @@ export function ReviewDataGrid() {
       // Update UI optimistically
       setTransactions((prev) =>
         prev.map((t) =>
-          t.match_id === matchId ? { ...t, review_status: "approved" } : t
+          t.match_id === matchId ? { ...t } : t
         )
       );
     } catch (error) {
@@ -86,10 +86,8 @@ export function ReviewDataGrid() {
               </tr>
             ) : (
               transactions.map((t) => {
-                const isApproved = t.review_status === "approved";
-                
                 return (
-                  <tr key={t.id} className={clsx("hover:bg-gray-50", isApproved && "bg-green-50/50")}>
+                  <tr key={t.id} className="hover:bg-gray-50">
                     <td className="px-6 py-3 text-gray-600 font-medium">{t.raw_date}</td>
                     <td className="px-6 py-3">
                       <span className={clsx(
@@ -120,27 +118,21 @@ export function ReviewDataGrid() {
                       )}
                     </td>
                     <td className="px-6 py-3 text-center whitespace-nowrap">
-                      {isApproved ? (
-                         <span className="inline-flex items-center text-green-600 font-medium text-xs">
-                           <Check className="w-4 h-4 mr-1" /> Đã duyệt
-                         </span>
-                      ) : (
-                        <div className="flex items-center justify-center space-x-2">
-                          <button 
-                            onClick={() => handleConfirm(t.match_id)}
-                            className="p-1.5 bg-white text-green-600 border border-green-200 hover:bg-green-50 rounded shadow-sm transition-colors"
-                            title="Xác nhận phân loại"
-                          >
-                            <Check className="w-4 h-4" />
-                          </button>
-                          <button 
-                            className="p-1.5 bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 rounded shadow-sm transition-colors"
-                            title="Chỉnh sửa (Override)"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </button>
-                        </div>
-                      )}
+                      <div className="flex items-center justify-center space-x-2">
+                        <button 
+                          onClick={() => handleConfirm(t.match_id)}
+                          className="p-1.5 bg-white text-green-600 border border-green-200 hover:bg-green-50 rounded shadow-sm transition-colors"
+                          title="Xác nhận phân loại"
+                        >
+                          <Check className="w-4 h-4" />
+                        </button>
+                        <button 
+                          className="p-1.5 bg-white text-indigo-600 border border-indigo-200 hover:bg-indigo-50 rounded shadow-sm transition-colors"
+                          title="Chỉnh sửa (Override)"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );

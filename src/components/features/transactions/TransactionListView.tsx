@@ -1,8 +1,8 @@
 import clsx from 'clsx';
+import { Brain } from 'lucide-react';
 import { useTransactionList } from './useTransactionList';
 import { TransactionFilters } from './TransactionFilters';
 import { TransactionTable } from './TransactionTable';
-import { BulkActions } from './BulkActions';
 import type { BankTab } from '@/lib/store';
 
 const BANK_TABS: { key: BankTab; label: string }[] = [
@@ -10,12 +10,19 @@ const BANK_TABS: { key: BankTab; label: string }[] = [
   { key: 'AGRIBANK', label: 'Agribank' },
 ];
 
+const STATUS_FILTERS: { value: string; label: string }[] = [
+  { value: '', label: 'Tất cả' },
+  { value: 'pending_classification', label: 'Chờ phân loại' },
+  { value: 'classified', label: 'Đã phân loại' },
+  { value: 'confirmed', label: 'Đã xác nhận' },
+  { value: 'exported', label: 'Đã xuất' },
+];
+
 export function TransactionListView() {
   const {
     transactions,
     pagination,
     filters,
-    selectedIds,
     categories,
     batches,
     loading,
@@ -26,12 +33,8 @@ export function TransactionListView() {
     updateFilters,
     resetFilters,
     goToPage,
-    toggleSelect,
-    toggleSelectAll,
-    clearSelection,
-    bulkAssignCategory,
-    bulkChangeReviewStatus,
-    bulkConfirm,
+    updateCategory,
+    reclassify,
   } = useTransactionList();
 
   const bankCounts: Record<BankTab, number> = { BIDV: bidvCount, AGRIBANK: agribankCount };
@@ -82,6 +85,31 @@ export function TransactionListView() {
           value={transactions.filter((t) => t.status === 'confirmed').length}
           color="green"
         />
+        <button
+          onClick={reclassify}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-purple-700 bg-purple-50 hover:bg-purple-100 border border-purple-200 rounded-lg transition-colors"
+        >
+          <Brain className="w-3.5 h-3.5" />
+          Phân loại tự động
+        </button>
+      </div>
+
+      {/* Quick status filter */}
+      <div className="flex items-center gap-2">
+        {STATUS_FILTERS.map((sf) => (
+          <button
+            key={sf.value}
+            onClick={() => updateFilters({ status: sf.value as any })}
+            className={clsx(
+              'px-3 py-1.5 text-xs font-medium rounded-full border transition-colors',
+              filters.status === sf.value
+                ? 'bg-indigo-600 text-white border-indigo-600'
+                : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+            )}
+          >
+            {sf.label}
+          </button>
+        ))}
       </div>
 
       {/* Filters */}
@@ -97,21 +125,9 @@ export function TransactionListView() {
       <TransactionTable
         transactions={transactions}
         pagination={pagination}
-        selectedIds={selectedIds}
-        onToggleSelect={toggleSelect}
-        onToggleSelectAll={toggleSelectAll}
-        onGoToPage={goToPage}
-      />
-
-      {/* Bulk Actions (sticky bottom bar) */}
-      <BulkActions
-        selectedCount={selectedIds.size}
         categories={categories}
-        loading={loading}
-        onAssignCategory={bulkAssignCategory}
-        onChangeReviewStatus={bulkChangeReviewStatus}
-        onConfirm={bulkConfirm}
-        onClearSelection={clearSelection}
+        onUpdateCategory={updateCategory}
+        onGoToPage={goToPage}
       />
     </div>
   );

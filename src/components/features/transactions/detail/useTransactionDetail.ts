@@ -32,7 +32,7 @@ export function useTransactionDetail(transactionId: string) {
 
   // TODO: PATCH /api/transactions/[id]
   const confirmClassification = useCallback(
-    async (categoryId: string, reviewStatus: 'approved' | 'rejected', notes: string) => {
+    async (categoryId: string, notes: string) => {
       setLoading(true);
       try {
         // const res = await fetch(`/api/transactions/${transactionId}`, {
@@ -52,9 +52,6 @@ export function useTransactionDetail(transactionId: string) {
               confirmed_category_code: cat?.code || null,
               confirmed_category_name: cat?.name || null,
               is_manually_overridden: categoryId !== prev.match.suggested_category_id,
-              review_status: reviewStatus,
-              reviewer_name: 'Bạn',
-              reviewed_at: new Date().toISOString(),
             },
             audit_logs: [
               ...prev.audit_logs,
@@ -63,11 +60,9 @@ export function useTransactionDetail(transactionId: string) {
                 action: categoryId !== prev.match.suggested_category_id ? 'manual_override' as const : 'update' as const,
                 old_values: {
                   confirmed_category_id: prev.match.confirmed_category_id,
-                  review_status: prev.match.review_status,
                 },
                 new_values: {
                   confirmed_category_id: categoryId,
-                  review_status: reviewStatus,
                   ...(notes ? { notes } : {}),
                 },
                 user_id: 'current-user',

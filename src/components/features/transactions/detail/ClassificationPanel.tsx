@@ -33,16 +33,13 @@ interface MatchData {
   confirmed_category_id: string | null;
   confirmed_category_code: string | null;
   confirmed_category_name: string | null;
-  review_status: 'pending' | 'approved' | 'rejected';
-  reviewer_name: string | null;
-  reviewed_at: string | null;
 }
 
 interface ClassificationPanelProps {
   match: MatchData | null;
   categories: { id: string; code: string; name: string }[];
   transactionStatus: string;
-  onConfirm: (categoryId: string, reviewStatus: 'approved' | 'rejected', notes: string) => void;
+  onConfirm: (categoryId: string, notes: string) => void;
   onRerunSuggest: () => void;
   loading: boolean;
 }
@@ -72,20 +69,6 @@ function ConfidenceMeter({ score }: { score: number }) {
   );
 }
 
-function ReviewStatusBadge({ status }: { status: 'pending' | 'approved' | 'rejected' }) {
-  const config = {
-    pending: { label: 'Chờ duyệt', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200' },
-    approved: { label: 'Đã duyệt', cls: 'bg-green-100 text-green-700 border-green-200' },
-    rejected: { label: 'Từ chối', cls: 'bg-red-100 text-red-700 border-red-200' },
-  }[status];
-
-  return (
-    <span className={clsx('inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border', config.cls)}>
-      {config.label}
-    </span>
-  );
-}
-
 export function ClassificationPanel({
   match,
   categories,
@@ -98,9 +81,6 @@ export function ClassificationPanel({
   const [selectedCategoryId, setSelectedCategoryId] = useState(
     match?.confirmed_category_id || match?.suggested_category_id || ''
   );
-  const [reviewStatus, setReviewStatus] = useState<'approved' | 'rejected'>(
-    match?.review_status === 'rejected' ? 'rejected' : 'approved'
-  );
   const [notes, setNotes] = useState('');
 
   const isExported = transactionStatus === 'exported';
@@ -112,7 +92,6 @@ export function ClassificationPanel({
         <div className="flex items-center gap-2">
           <Brain className="w-4 h-4 text-purple-500" />
           <h3 className="text-sm font-semibold text-gray-800">Phân loại (Classification)</h3>
-          {match && <ReviewStatusBadge status={match.review_status} />}
         </div>
         <button
           onClick={onRerunSuggest}
@@ -143,7 +122,7 @@ export function ClassificationPanel({
                 {match.suggested_category_name ? (
                   <div>
                     <p className="text-sm font-semibold text-blue-800">
-                      {match.suggested_category_code} – {match.suggested_category_name}
+                      {match.suggested_category_name}
                     </p>
                     <div className="mt-2">
                       <ConfidenceMeter score={match.confidence_score} />
@@ -179,14 +158,8 @@ export function ClassificationPanel({
                 {match.confirmed_category_name ? (
                   <div>
                     <p className="text-sm font-semibold text-green-800">
-                      {match.confirmed_category_code} – {match.confirmed_category_name}
+                      {match.confirmed_category_name}
                     </p>
-                    {match.reviewer_name && (
-                      <p className="text-xs text-gray-500 mt-1">
-                        Bởi: {match.reviewer_name}
-                        {match.reviewed_at && ` • ${new Date(match.reviewed_at).toLocaleDateString('vi-VN')}`}
-                      </p>
-                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-gray-400 italic">Chưa xác nhận</p>
@@ -236,7 +209,7 @@ export function ClassificationPanel({
                             </td>
                             <td className="px-3 py-1.5 font-mono text-gray-700 max-w-[200px] truncate">{rule.keyword}</td>
                             <td className="px-3 py-1.5 text-center font-mono">{rule.priority}</td>
-                            <td className="px-3 py-1.5 text-gray-700">{rule.category_code} – {rule.category_name}</td>
+                            <td className="px-3 py-1.5 text-gray-700">{rule.category_name}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -251,36 +224,21 @@ export function ClassificationPanel({
               <div className="border-t border-gray-200 pt-5 space-y-4">
                 <h4 className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Chỉnh sửa & Xác nhận</h4>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Đầu mục xác nhận</label>
-                    <select
-                      value={selectedCategoryId}
-                      onChange={(e) => setSelectedCategoryId(e.target.value)}
-                      disabled={isExported}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-                    >
-                      <option value="">— Chọn đầu mục —</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
-                          {cat.code} – {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Trạng thái duyệt</label>
-                    <select
-                      value={reviewStatus}
-                      onChange={(e) => setReviewStatus(e.target.value as 'approved' | 'rejected')}
-                      disabled={isExported}
-                      className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
-                    >
-                      <option value="approved">✅ Duyệt (Approved)</option>
-                      <option value="rejected">❌ Từ chối (Rejected)</option>
-                    </select>
-                  </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Đầu mục xác nhận</label>
+                  <select
+                    value={selectedCategoryId}
+                    onChange={(e) => setSelectedCategoryId(e.target.value)}
+                    disabled={isExported}
+                    className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:bg-gray-100"
+                  >
+                    <option value="">— Chọn đầu mục —</option>
+                    {categories.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <div>
@@ -299,7 +257,7 @@ export function ClassificationPanel({
                   <button
                     onClick={() => {
                       if (!selectedCategoryId) return;
-                      onConfirm(selectedCategoryId, reviewStatus, notes);
+                      onConfirm(selectedCategoryId, notes);
                     }}
                     disabled={loading || !selectedCategoryId || isExported}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-green-600 hover:bg-green-700 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed"

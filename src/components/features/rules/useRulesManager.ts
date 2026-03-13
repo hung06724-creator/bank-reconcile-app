@@ -1,11 +1,16 @@
 import { useState, useCallback, useMemo } from 'react';
 import type { RuleListItem, RuleFormData, CategoryOption, RuleTestResult } from './types';
 import { EMPTY_FORM, CONFIDENCE_MAP } from './types';
-import { MOCK_RULES, MOCK_CATEGORIES } from './mock-data';
+import { MOCK_CATEGORIES } from './mock-data';
 import { removeVietnameseTones } from '@/lib/parsers/VietnameseTransactionParser';
+import { useAppStore } from '@/lib/store';
 
 export function useRulesManager() {
-  const [rules, setRules] = useState<RuleListItem[]>(MOCK_RULES);
+  const rules = useAppStore((s) => s.rules);
+  const addRule = useAppStore((s) => s.addRule);
+  const updateRule = useAppStore((s) => s.updateRule);
+  const deleteRuleInStore = useAppStore((s) => s.deleteRule);
+
   const [editingRule, setEditingRule] = useState<RuleListItem | null>(null);
   const [formData, setFormData] = useState<RuleFormData>(EMPTY_FORM);
   const [showForm, setShowForm] = useState(false);
@@ -64,7 +69,6 @@ export function useRulesManager() {
     setFormData((prev) => ({ ...prev, [key]: value }));
   }, []);
 
-  // TODO: POST /api/rules or PATCH /api/rules/[id]
   const saveRule = useCallback(async () => {
     setLoading(true);
     try {
@@ -73,26 +77,20 @@ export function useRulesManager() {
 
       if (editingRule) {
         // Update
-        setRules((prev) =>
-          prev.map((r) =>
-            r.id === editingRule.id
-              ? {
-                  ...r,
-                  category_id: formData.category_id,
-                  category_code: cat?.code || r.category_code,
-                  category_name: cat?.name || r.category_name,
-                  keyword: formData.keyword,
-                  type: formData.type,
-                  priority: formData.priority,
-                  amount_min: formData.amount_min ? parseFloat(formData.amount_min) : null,
-                  amount_max: formData.amount_max ? parseFloat(formData.amount_max) : null,
-                  stop_on_match: formData.stop_on_match,
-                  is_active: formData.is_active,
-                  updated_at: now,
-                }
-              : r
-          )
-        );
+        updateRule({
+          ...editingRule,
+          category_id: formData.category_id,
+          category_code: cat?.code || editingRule.category_code,
+          category_name: cat?.name || editingRule.category_name,
+          keyword: formData.keyword,
+          type: formData.type,
+          priority: formData.priority,
+          amount_min: formData.amount_min ? parseFloat(formData.amount_min) : null,
+          amount_max: formData.amount_max ? parseFloat(formData.amount_max) : null,
+          stop_on_match: formData.stop_on_match,
+          is_active: formData.is_active,
+          updated_at: now,
+        });
       } else {
         // Create
         const newRule: RuleListItem = {
@@ -112,27 +110,30 @@ export function useRulesManager() {
           created_at: now,
           updated_at: now,
         };
-        setRules((prev) => [...prev, newRule]);
+        addRule(newRule);
       }
       closeForm();
     } finally {
       setLoading(false);
     }
-  }, [formData, editingRule, categories, closeForm]);
+  }, [formData, editingRule, categories, closeForm, addRule, updateRule]);
 
-  // TODO: DELETE /api/rules/[id]
   const deleteRule = useCallback(async (id: string) => {
-    setRules((prev) => prev.filter((r) => r.id !== id));
-  }, []);
+    deleteRuleInStore(id);
+  }, [deleteRuleInStore]);
 
   const toggleActive = useCallback(async (id: string) => {
-    // TODO: PATCH /api/rules/[id]
-    setRules((prev) =>
-      prev.map((r) => (r.id === id ? { ...r, is_active: !r.is_active, updated_at: new Date().toISOString() } : r))
-    );
-  }, []);
+    const rule = rules.find((r) => r.id === id);
+    if (rule) {
+      updateRule({
+        ...rule,
+        is_active: !rule.is_active,
+        updated_at: new Date().toISOString(),
+      });
+    }
+  }, [rules, updateRule]);
 
-  // Client-side rule tester using the same logic as ClassificationService
+  // Client-side rule tester remains the same as it tests against current formData
   const testRule = useCallback(
     (description: string, amount: number): RuleTestResult => {
       const normalized = description.replace(/\s+/g, ' ').trim().toLowerCase();

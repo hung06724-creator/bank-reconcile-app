@@ -102,7 +102,7 @@ export function RuleForm({
               <option value="">— Chọn đầu mục —</option>
               {categories.map((cat) => (
                 <option key={cat.id} value={cat.id}>
-                  {cat.code} – {cat.name}
+                  {cat.name}
                 </option>
               ))}
             </select>

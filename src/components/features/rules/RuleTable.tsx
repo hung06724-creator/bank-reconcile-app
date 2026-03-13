@@ -158,10 +158,7 @@ export function RuleTable({
 
                     {/* Category */}
                     <td className="px-4 py-2.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-mono text-gray-400">{rule.category_code}</span>
-                        <span className="text-xs text-gray-800 font-medium">{rule.category_name}</span>
-                      </div>
+                      <span className="text-xs text-gray-800 font-medium">{rule.category_name}</span>
                     </td>
 
                     {/* Confidence */}

@@ -40,8 +40,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
   {
@@ -67,8 +65,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
   {
@@ -94,8 +90,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: 'cat-006',
       confirmed_category_code: 'EXP-02',
       confirmed_category_name: 'Chi phí nhân sự',
-      review_status: 'approved',
-      reviewer_name: 'Nguyễn Thị Hoa',
     },
   },
   {
@@ -121,8 +115,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
   {
@@ -164,8 +156,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: 'cat-005',
       confirmed_category_code: 'EXP-01',
       confirmed_category_name: 'Chi phí vận hành',
-      review_status: 'approved',
-      reviewer_name: 'Trần Văn Bình',
     },
   },
   {
@@ -191,8 +181,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
   {
@@ -218,8 +206,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: 'cat-002',
       confirmed_category_code: 'REV-02',
       confirmed_category_name: 'Tiền chuyển khoản cá nhân',
-      review_status: 'approved',
-      reviewer_name: 'Nguyễn Thị Hoa',
     },
   },
   {
@@ -245,8 +231,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
   {
@@ -272,8 +256,6 @@ export const MOCK_TRANSACTIONS: TransactionListItem[] = [
       confirmed_category_id: null,
       confirmed_category_code: null,
       confirmed_category_name: null,
-      review_status: 'pending',
-      reviewer_name: null,
     },
   },
 ];
@@ -331,10 +313,6 @@ export const MOCK_TRANSACTION_DETAIL: TransactionDetail = {
     confirmed_category_id: null,
     confirmed_category_code: null,
     confirmed_category_name: null,
-    review_status: 'pending',
-    reviewer_id: null,
-    reviewer_name: null,
-    reviewed_at: null,
   },
   audit_logs: [
     {

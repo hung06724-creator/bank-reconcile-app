@@ -37,7 +37,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.1,
     suggested_category_name: null,
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u02',
@@ -48,7 +48,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.45,
     suggested_category_name: 'Doanh thu dịch vụ',
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u03',
@@ -59,7 +59,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'pending_classification',
     confidence_score: 0,
     suggested_category_name: null,
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u04',
@@ -70,7 +70,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.6,
     suggested_category_name: 'Chi phí vận hành',
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u05',
@@ -81,7 +81,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.55,
     suggested_category_name: 'Doanh thu TMĐT (Shopee/Lazada)',
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u06',
@@ -92,7 +92,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'pending_classification',
     confidence_score: 0,
     suggested_category_name: null,
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u07',
@@ -103,7 +103,7 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.65,
     suggested_category_name: 'Chi phí vận hành',
-    review_status: 'pending',
+
   },
   {
     id: 'txn-u08',
@@ -114,6 +114,6 @@ export const MOCK_URGENT: UrgentTransaction[] = [
     status: 'classified',
     confidence_score: 0.7,
     suggested_category_name: 'Doanh thu dịch vụ',
-    review_status: 'pending',
+
   },
 ];

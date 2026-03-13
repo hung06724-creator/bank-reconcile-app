@@ -1,13 +1,13 @@
-import { Check, AlertTriangle, FileOutput, Clock, HelpCircle } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Check, AlertTriangle, FileOutput, Clock, HelpCircle, Search } from 'lucide-react';
 import clsx from 'clsx';
-import type { TransactionListItem, Pagination } from './types';
+import type { TransactionListItem, Pagination, CategoryOption } from './types';
 
 interface TransactionTableProps {
   transactions: TransactionListItem[];
   pagination: Pagination;
-  selectedIds: Set<string>;
-  onToggleSelect: (id: string) => void;
-  onToggleSelectAll: () => void;
+  categories: CategoryOption[];
+  onUpdateCategory: (transactionId: string, categoryId: string) => void;
   onGoToPage: (page: number) => void;
 }
 
@@ -53,25 +53,88 @@ function StatusBadge({ status }: { status: TransactionListItem['status'] }) {
   );
 }
 
-function CategoryCell({
-  name,
-  code,
-  isOverridden,
+function InlineCategorySearch({
+  currentName,
+  currentCode,
+  categories,
+  onSelect,
 }: {
-  name: string | null;
-  code: string | null;
-  isOverridden?: boolean;
+  currentName: string | null;
+  currentCode: string | null;
+  categories: CategoryOption[];
+  onSelect: (categoryId: string) => void;
 }) {
-  if (!name) {
-    return <span className="text-gray-400 italic text-xs">—</span>;
-  }
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const ref = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery('');
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filtered = categories.filter((c) => {
+    if (!query) return true;
+    const q = query.toLowerCase();
+    return c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
+  });
+
+  const displayValue = open ? query : (currentName || '');
+
   return (
-    <div className="flex items-center gap-1">
-      <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-700 text-xs font-medium border border-indigo-100 truncate max-w-[140px]" title={`${code} – ${name}`}>
-        {name}
-      </span>
-      {isOverridden && (
-        <span title="Đã override thủ công"><AlertTriangle className="w-3 h-3 text-amber-500 flex-shrink-0" /></span>
+    <div ref={ref} className="relative">
+      <div className="relative">
+        <Search className="absolute left-1.5 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+        <input
+          ref={inputRef}
+          type="text"
+          value={displayValue}
+          placeholder="Chọn hoặc tìm..."
+          onFocus={() => {
+            setOpen(true);
+            setQuery('');
+          }}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            if (!open) setOpen(true);
+          }}
+          className={clsx(
+            'w-full pl-6 pr-2 py-1 text-xs border rounded-md focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500',
+            currentName ? 'border-indigo-200 bg-indigo-50/50 text-indigo-700' : 'border-gray-200 text-gray-600'
+          )}
+          title={currentName || ''}
+        />
+      </div>
+      {open && (
+        <div className="absolute z-30 top-full mt-1 left-0 w-56 bg-white border border-gray-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+          {filtered.length === 0 ? (
+            <div className="px-3 py-2 text-xs text-gray-400">Không tìm thấy</div>
+          ) : (
+            filtered.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => {
+                  onSelect(cat.id);
+                  setOpen(false);
+                  setQuery('');
+                }}
+                className={clsx(
+                  'w-full text-left px-3 py-1.5 text-xs hover:bg-indigo-50 hover:text-indigo-700 transition-colors border-b border-gray-50 last:border-0',
+                  currentCode === cat.code && 'bg-indigo-50 text-indigo-700 font-medium'
+                )}
+              >
+                {cat.name}
+              </button>
+            ))
+          )}
+        </div>
       )}
     </div>
   );
@@ -80,81 +143,46 @@ function CategoryCell({
 export function TransactionTable({
   transactions,
   pagination,
-  selectedIds,
-  onToggleSelect,
-  onToggleSelectAll,
+  categories,
+  onUpdateCategory,
   onGoToPage,
 }: TransactionTableProps) {
-  const allSelected = transactions.length > 0 && selectedIds.size === transactions.length;
-
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200 text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-3 py-3 w-10">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={onToggleSelectAll}
-                  className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-              </th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Ngày</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mã GD</th>
               <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Ghi nợ</th>
               <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Ghi có</th>
-              <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Số dư</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[220px]">Mô tả</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Mô tả</th>
               <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Người chuyển</th>
               <th className="px-3 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider">Số tiền</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Gợi ý ĐM</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">ĐM xác nhận</th>
+              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider w-[180px]">Miêu tả</th>
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Conf.</th>
               <th className="px-3 py-3 text-center text-xs font-semibold text-gray-600 uppercase tracking-wider">Trạng thái</th>
-              <th className="px-3 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Người xử lý</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100 bg-white">
             {transactions.length === 0 ? (
               <tr>
-                <td colSpan={14} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={9} className="px-6 py-12 text-center text-gray-500">
                   Không có giao dịch nào khớp bộ lọc hiện tại.
                 </td>
               </tr>
             ) : (
               transactions.map((t) => {
-                const isSelected = selectedIds.has(t.id);
-                const isApproved = t.match?.review_status === 'approved';
-
                 return (
                   <tr
                     key={t.id}
                     className={clsx(
-                      'hover:bg-gray-50 transition-colors',
-                      isSelected && 'bg-indigo-50/50',
-                      isApproved && !isSelected && 'bg-green-50/30'
+                      'hover:bg-gray-50 transition-colors'
                     )}
                   >
-                    {/* Checkbox */}
-                    <td className="px-3 py-2.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onToggleSelect(t.id)}
-                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                      />
-                    </td>
-
                     {/* Ngày */}
                     <td className="px-3 py-2.5 text-gray-700 whitespace-nowrap text-xs font-medium">
                       {t.raw_date.split(' ')[0]}
-                    </td>
-
-                    {/* Mã GD */}
-                    <td className="px-3 py-2.5 text-gray-500 font-mono text-xs truncate max-w-[100px]" title={t.raw_reference || ''}>
-                      {t.raw_reference || '—'}
                     </td>
 
                     {/* Ghi nợ */}
@@ -175,14 +203,9 @@ export function TransactionTable({
                       )}
                     </td>
 
-                    {/* Số dư */}
-                    <td className="px-3 py-2.5 text-right font-mono text-xs text-gray-600">
-                      {t.balance_after != null ? formatAmount(t.balance_after) : '—'}
-                    </td>
-
-                    {/* Mô tả */}
+                    {/* Mô tả - full text */}
                     <td className="px-3 py-2.5">
-                      <p className="text-xs text-gray-800 truncate max-w-[220px]" title={t.raw_desc || ''}>
+                      <p className="text-xs text-gray-800" title={t.raw_desc || ''}>
                         {t.raw_desc}
                       </p>
                     </td>
@@ -197,20 +220,13 @@ export function TransactionTable({
                       {t.type === 'debit' ? '-' : '+'}{formatAmount(t.normalized_amount)}
                     </td>
 
-                    {/* Gợi ý đầu mục */}
+                    {/* Miêu tả (was Gợi ý ĐM) - inline searchable combobox */}
                     <td className="px-3 py-2.5">
-                      <CategoryCell
-                        name={t.match?.suggested_category_name || null}
-                        code={t.match?.suggested_category_code || null}
-                      />
-                    </td>
-
-                    {/* Đầu mục xác nhận */}
-                    <td className="px-3 py-2.5">
-                      <CategoryCell
-                        name={t.match?.confirmed_category_name || null}
-                        code={t.match?.confirmed_category_code || null}
-                        isOverridden={t.match?.is_manually_overridden}
+                      <InlineCategorySearch
+                        currentName={t.match?.suggested_category_name || null}
+                        currentCode={t.match?.suggested_category_code || null}
+                        categories={categories}
+                        onSelect={(catId) => onUpdateCategory(t.id, catId)}
                       />
                     </td>
 
@@ -224,10 +240,6 @@ export function TransactionTable({
                       <StatusBadge status={t.status} />
                     </td>
 
-                    {/* Người xử lý */}
-                    <td className="px-3 py-2.5 text-xs text-gray-600 whitespace-nowrap">
-                      {t.match?.reviewer_name || <span className="text-gray-300">—</span>}
-                    </td>
                   </tr>
                 );
               })

@@ -95,18 +95,6 @@ export function TransactionFilters({
               ]}
             />
 
-            {/* Review Status */}
-            <FilterSelect
-              label="Trạng thái duyệt"
-              value={filters.review_status}
-              onChange={(v) => onFilterChange({ review_status: v as TFilters['review_status'] })}
-              options={[
-                { value: 'pending', label: 'Chờ duyệt' },
-                { value: 'approved', label: 'Đã duyệt' },
-                { value: 'rejected', label: 'Từ chối' },
-              ]}
-            />
-
             {/* Type */}
             <FilterSelect
               label="Loại"
@@ -123,7 +111,7 @@ export function TransactionFilters({
               label="Gợi ý đầu mục"
               value={filters.suggested_category_id}
               onChange={(v) => onFilterChange({ suggested_category_id: v })}
-              options={categories.map((c) => ({ value: c.id, label: `${c.code} – ${c.name}` }))}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
             />
 
             {/* Confirmed Category */}
@@ -131,7 +119,7 @@ export function TransactionFilters({
               label="Đầu mục xác nhận"
               value={filters.confirmed_category_id}
               onChange={(v) => onFilterChange({ confirmed_category_id: v })}
-              options={categories.map((c) => ({ value: c.id, label: `${c.code} – ${c.name}` }))}
+              options={categories.map((c) => ({ value: c.id, label: c.name }))}
             />
 
             {/* Date range */}

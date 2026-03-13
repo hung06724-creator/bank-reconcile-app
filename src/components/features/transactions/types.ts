@@ -1,4 +1,4 @@
-import type { TransactionStatus, ReviewStatus, TransactionType, AuditAction, RuleType } from '@/domain/types';
+import type { TransactionStatus, TransactionType, AuditAction, RuleType } from '@/domain/types';
 
 export interface TransactionMatchView {
   suggested_category_id: string | null;
@@ -9,8 +9,6 @@ export interface TransactionMatchView {
   confirmed_category_id: string | null;
   confirmed_category_code: string | null;
   confirmed_category_name: string | null;
-  review_status: ReviewStatus;
-  reviewer_name: string | null;
 }
 
 export interface TransactionListItem {
@@ -34,7 +32,6 @@ export interface TransactionFilters {
   search: string;
   batch_id: string;
   status: TransactionStatus | '';
-  review_status: ReviewStatus | '';
   type: TransactionType | '';
   suggested_category_id: string;
   confirmed_category_id: string;
@@ -48,6 +45,8 @@ export interface CategoryOption {
   id: string;
   code: string;
   name: string;
+  group?: string;
+  ledger_account?: string;
 }
 
 export interface BatchOption {
@@ -62,13 +61,12 @@ export interface Pagination {
   total_pages: number;
 }
 
-export type BulkAction = 'assign_category' | 'change_review_status' | 'confirm';
+export type BulkAction = 'assign_category' | 'confirm';
 
 export const EMPTY_FILTERS: TransactionFilters = {
   search: '',
   batch_id: '',
   status: '',
-  review_status: '',
   type: '',
   suggested_category_id: '',
   confirmed_category_id: '',
@@ -108,10 +106,6 @@ export interface TransactionDetailMatch {
   confirmed_category_id: string | null;
   confirmed_category_code: string | null;
   confirmed_category_name: string | null;
-  review_status: ReviewStatus;
-  reviewer_id: string | null;
-  reviewer_name: string | null;
-  reviewed_at: string | null;
 }
 
 export interface AuditLogEntry {

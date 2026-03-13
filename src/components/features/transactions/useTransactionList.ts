@@ -8,6 +8,8 @@ import type {
 } from './types';
 import { EMPTY_FILTERS } from './types';
 import { useAppStore } from '@/lib/store';
+import { ClassificationService } from '@/services/classification.service';
+import { BankTransaction } from '@/domain/types';
 
 const PAGE_SIZE = 50;
 
@@ -18,6 +20,7 @@ export function useTransactionList() {
   const setActiveBank = useAppStore((s) => s.setActiveBank);
   const categories = useAppStore((s) => s.categories);
   const batches = useAppStore((s) => s.batches);
+  const rules = useAppStore((s) => s.rules);
 
   const [filters, setFilters] = useState<TransactionFilters>(EMPTY_FILTERS);
   const [pagination, setPagination] = useState<Pagination>({
@@ -51,9 +54,6 @@ export function useTransactionList() {
     }
     if (filters.status) {
       result = result.filter((t) => t.status === filters.status);
-    }
-    if (filters.review_status) {
-      result = result.filter((t) => t.match?.review_status === filters.review_status);
     }
     if (filters.type) {
       result = result.filter((t) => t.type === filters.type);
@@ -166,14 +166,11 @@ export function useTransactionList() {
                 suggested_category_name: null,
                 confidence_score: 0,
                 is_manually_overridden: false,
-                review_status: 'pending' as const,
-                reviewer_name: null,
               }),
               confirmed_category_id: categoryId,
               confirmed_category_code: cat?.code || null,
               confirmed_category_name: cat?.name || null,
               is_manually_overridden: true,
-              review_status: 'approved' as const,
             },
           };
         });
@@ -183,25 +180,6 @@ export function useTransactionList() {
       }
     },
     [selectedIds, categories, clearSelection, mapTxns]
-  );
-
-  const bulkChangeReviewStatus = useCallback(
-    async (reviewStatus: 'approved' | 'rejected') => {
-      setLoading(true);
-      try {
-        mapTxns((t) => {
-          if (!selectedIds.has(t.id) || !t.match) return t;
-          return {
-            ...t,
-            match: { ...t.match, review_status: reviewStatus },
-          };
-        });
-        clearSelection();
-      } finally {
-        setLoading(false);
-      }
-    },
-    [selectedIds, clearSelection, mapTxns]
   );
 
   const bulkConfirm = useCallback(async () => {
@@ -217,7 +195,6 @@ export function useTransactionList() {
             confirmed_category_id: t.match.suggested_category_id,
             confirmed_category_code: t.match.suggested_category_code,
             confirmed_category_name: t.match.suggested_category_name,
-            review_status: 'approved' as const,
           },
         };
       });
@@ -226,6 +203,74 @@ export function useTransactionList() {
       setLoading(false);
     }
   }, [selectedIds, clearSelection, mapTxns]);
+
+  const updateCategory = useCallback(
+    (transactionId: string, categoryId: string) => {
+      const cat = categories.find((c) => c.id === categoryId);
+      mapTxns((t) => {
+        if (t.id !== transactionId) return t;
+        return {
+          ...t,
+          status: 'classified' as const,
+          match: {
+            ...(t.match || {
+              confidence_score: 0,
+              is_manually_overridden: false,
+              confirmed_category_id: null,
+              confirmed_category_code: null,
+              confirmed_category_name: null,
+            }),
+            suggested_category_id: categoryId,
+            suggested_category_code: cat?.code || null,
+            suggested_category_name: cat?.name || null,
+            confidence_score: 1.0,
+            is_manually_overridden: true,
+          },
+        };
+      });
+    },
+    [categories, mapTxns]
+  );
+
+  const reclassify = useCallback(async () => {
+    setLoading(true);
+    try {
+      const classifierInstance = new ClassificationService();
+      const currentRules = rules.map(r => ({
+        ...r,
+        amount_min: r.amount_min ?? undefined,
+        amount_max: r.amount_max ?? undefined,
+      }));
+
+      mapTxns((t) => {
+        if (t.status !== 'pending_classification') return t;
+        if (t.type === 'debit') return t; // Chỉ phân loại ghi có
+
+        const matchResult = classifierInstance.evaluateRules(t as any as BankTransaction, currentRules as any);
+
+        if (matchResult.suggested_category_id) {
+          const cat = categories.find(c => c.id === matchResult.suggested_category_id);
+          return {
+            ...t,
+            status: 'classified' as const,
+            match: {
+              suggested_category_id: matchResult.suggested_category_id,
+              suggested_category_code: matchResult.suggested_category_code || null,
+              suggested_category_name: cat?.name || null,
+              confidence_score: matchResult.confidence_score,
+              is_manually_overridden: false,
+              confirmed_category_id: null,
+              confirmed_category_code: null,
+              confirmed_category_name: null,
+            }
+          };
+        }
+        return t;
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [rules, categories, mapTxns]);
 
   return {
     transactions: pagedTransactions,
@@ -246,8 +291,9 @@ export function useTransactionList() {
     toggleSelect,
     toggleSelectAll,
     clearSelection,
+    updateCategory,
     bulkAssignCategory,
-    bulkChangeReviewStatus,
     bulkConfirm,
+    reclassify,
   };
 }
